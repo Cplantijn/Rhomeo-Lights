@@ -1,15 +1,21 @@
+// Based on https://github.com/mo-thunderz/RotaryEncoder/blob/main/Arduino/ArduinoRotaryEncoder/ArduinoRotaryEncoder.ino
+
 #ifndef ENCODERS_H
 #define ENCODERS_H
 
 // Define rotary encoder pins
-#define ENC_A 16
-#define ENC_B 19
+#define BRIGHTNESS_ENC_A 15
+#define BRIGHTNESS_ENC_B 2
+
+#define SPECTRUM_ENC_A 17
+#define SPECTRUM_ENC_B 5
 
 #define _pauseLength 25000  
 #define _fastIncrement 10 
-extern volatile int counter;
+extern volatile int rawBrightnessVal;
+extern volatile int rawSpectrumVal;
 
-// From https://github.com/mo-thunderz/RotaryEncoder/blob/main/Arduino/ArduinoRotaryEncoder/ArduinoRotaryEncoder.ino
-void read_encoder(); 
+int readBrightnessEncoder(); 
+int readSpectrumEncoder();
 
 #endif

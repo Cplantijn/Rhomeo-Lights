@@ -1,42 +1,85 @@
 #include <Arduino.h>
 #include "encoder.h"
+#include "spectrum.h"
 
 unsigned long _lastIncReadTime = micros(); 
 unsigned long _lastDecReadTime = micros();
-volatile int counter = 0; 
 
-void read_encoder() {
+volatile int rawBrightnessVal = 0;
+volatile int rawSpectrumVal = 0;
+
+static const int8_t enc_states[]  = {0,-1,1,0,1,0,0,-1,-1,0,0,1,0,1,-1,0}; // Lookup table
+
+int readBrightnessEncoder() {
   // Encoder interrupt routine for both pins. Updates counter
   // if they are valid and have rotated a full indent
- 
-  static uint8_t old_AB = 3;  // Lookup table index
-  static int8_t encval = 0;   // Encoder value  
-  static const int8_t enc_states[]  = {0,-1,1,0,1,0,0,-1,-1,0,0,1,0,1,-1,0}; // Lookup table
+  static uint8_t oldBrightnessAB = 3;  // Lookup table index
+  static int8_t brightnessEncVal = 0;   // Encoder value  
 
-  old_AB <<=2;  // Remember previous state
+  oldBrightnessAB <<=2;  // Remember previous state
 
-  if (digitalRead(ENC_A)) old_AB |= 0x02; // Add current state of pin A
-  if (digitalRead(ENC_B)) old_AB |= 0x01; // Add current state of pin B
+  if (digitalRead(BRIGHTNESS_ENC_A)) oldBrightnessAB |= 0x02; // Add current state of pin A
+  if (digitalRead(BRIGHTNESS_ENC_B)) oldBrightnessAB |= 0x01; // Add current state of pin B
   
-  encval += enc_states[( old_AB & 0x0f )];
+  brightnessEncVal += enc_states[( oldBrightnessAB & 0x0f )];
+  int changeVal = 0;
 
   // Update counter if encoder has rotated a full indent, that is at least 4 steps
-  if( encval > 3 ) {        // Four steps forward
-    int changevalue = 1;
+  if (brightnessEncVal > 3 ) {        // Four steps forward
+    changeVal = 1;
+    
     if((micros() - _lastIncReadTime) < _pauseLength) {
-      changevalue = _fastIncrement * changevalue; 
+      changeVal = _fastIncrement * changeVal; 
     }
     _lastIncReadTime = micros();
-    counter = counter + changevalue;              // Update counter
-    encval = 0;
+    rawBrightnessVal = rawBrightnessVal + changeVal;        // Update raw counter
+    brightnessEncVal = 0;
   }
-  else if( encval < -3 ) {        // Four steps backward
-    int changevalue = -1;
+  else if( brightnessEncVal < -3 ) {        // Four steps backward
+    changeVal = -1;
     if((micros() - _lastDecReadTime) < _pauseLength) {
-      changevalue = _fastIncrement * changevalue; 
+      changeVal = _fastIncrement * changeVal; 
     }
     _lastDecReadTime = micros();
-    counter = counter + changevalue;              // Update counter
-    encval = 0;
+    rawBrightnessVal = rawBrightnessVal + changeVal;        // Update raw counter
+    brightnessEncVal = 0;
   }
+
+  return changeVal;
+}
+
+int readSpectrumEncoder() {
+  // Encoder interrupt routine for both pins. Updates counter
+  // if they are valid and have rotated a full indent
+  static uint8_t oldSpectrumAB = 3;  // Lookup table index
+  static int8_t oldSpectrumEncVal = 0;   // Encoder value  
+
+  oldSpectrumAB <<=2;  // Remember previous state
+
+  if (digitalRead(SPECTRUM_ENC_A)) oldSpectrumAB |= 0x02; // Add current state of pin A
+  if (digitalRead(SPECTRUM_ENC_B)) oldSpectrumAB |= 0x01; // Add current state of pin B
+  
+  oldSpectrumEncVal += enc_states[( oldSpectrumAB & 0x0f )];
+  int changeVal = 0;
+  // Update counter if encoder has rotated a full indent, that is at least 4 steps
+  if( oldSpectrumEncVal > 3 ) {        // Four steps forward
+    changeVal = 1;
+    if((micros() - _lastIncReadTime) < _pauseLength) {
+      changeVal = _fastIncrement * changeVal; 
+    }
+    _lastIncReadTime = micros();
+    rawSpectrumVal = rawSpectrumVal + changeVal;        // Update raw counter
+    oldSpectrumEncVal = 0;
+  }
+  else if( oldSpectrumEncVal < -3 ) {        // Four steps backward
+    changeVal = -1;
+    if((micros() - _lastDecReadTime) < _pauseLength) {
+      changeVal = _fastIncrement * changeVal; 
+    }
+    _lastDecReadTime = micros();
+    rawSpectrumVal = rawSpectrumVal + changeVal;        // Update raw counter
+    oldSpectrumEncVal = 0;
+  }
+
+  return changeVal;
 }

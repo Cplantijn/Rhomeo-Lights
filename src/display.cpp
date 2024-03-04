@@ -1,10 +1,27 @@
 #include "display.h"
 
 Adafruit_GC9A01A tft = Adafruit_GC9A01A(LCD_CS, LCD_DC);
+GFXcanvas16 _offscreenTopHalf = GFXcanvas16(SCREEN_WIDTH, SCREEN_HEIGHT/2);
+GFXcanvas16 offscreenPercentage = GFXcanvas16(SCREEN_WIDTH/1.45, SCREEN_HEIGHT/4);
 
-void fillArc(int x, int y, int start_angle, int seg_count, int rx, int ry, int w, unsigned int colour) {
-  byte seg = 3; // Segments are 3 degrees wide = 120 segments for 360 degrees
-  byte inc = 3; // Draw segments every 3 degrees, increase to 6 for segmented ring
+bool isIdleTimeoutActive = false; 
+bool isDisplaysIdle = false;
+unsigned long idleTimeoutStartTime;
+
+int _sizePerChar = 18;
+
+void fillArc(int start_angle, int seg_count, int w, unsigned int colour) {
+  _offscreenTopHalf.fillScreen(0);
+  
+  int screenWidth = _offscreenTopHalf.width();
+  int screenHeight = _offscreenTopHalf.height();
+  int x = screenWidth / 2;
+  int y = screenHeight;
+  int rx = (screenWidth / 2) + 1; // Fills in round error pixels on edges
+  int ry = rx;
+
+  byte seg = 2; // Segments are 2 degrees wide = 180 segments for 360 degrees
+  byte inc = 2; // Draw segments every 2 degrees, increase to 6 for segmented ring
 
   // Draw colour blocks every inc degrees
   for (int i = start_angle; i < start_angle + seg * seg_count; i += inc) {
@@ -25,27 +42,58 @@ void fillArc(int x, int y, int start_angle, int seg_count, int rx, int ry, int w
     int x3 = sx2 * rx + x;
     int y3 = sy2 * ry + y;
 
-    tft.fillTriangle(x0, y0, x1, y1, x2, y2, colour);
-    tft.fillTriangle(x1, y1, x2, y2, x3, y3, colour);
+    _offscreenTopHalf.fillTriangle(x0, y0, x1, y1, x2, y2, colour);
+    _offscreenTopHalf.fillTriangle(x1, y1, x2, y2, x3, y3, colour);
   }
+
+  Serial.println("Drawing arc X: " + String(x) + " Y: " + String(y) + " RX: " + String(rx) + " RY: " + String(ry) + " Width: " + String(screenWidth));
+  tft.drawRGBBitmap(0, 0, _offscreenTopHalf.getBuffer(), screenWidth, screenHeight);
 }
 
-void writeText() {
-  // tft.fillScreen(GC9A01A_BLACK);
-  // tft.fillCircle(120, 120, 122, GC9A01A_RED);
-  // tft.fillCircle(120, 120, 94, GC9A01A_BLACK);
-  // tft.fillRect(0, 120, 240, 120, GC9A01A_BLACK);
-  // tft.setCursor(0, 140);
-  // tft.setTextColor(GC9A01A_WHITE);
+void writePercentage(int x, int textColor) {
+  // tft.fillRect((SCREEN_WIDTH/6 - 2), SCREEN_HEIGHT/3, SCREEN_WIDTH/1.45, SCREEN_HEIGHT/4, GC9A01A_BLACK);
+  offscreenPercentage.fillScreen(0);
+
+  int extraPadLeft = 0;
+  if (x < 10) {
+    extraPadLeft = _sizePerChar * 2;
+  } else if (x < 100) {
+    extraPadLeft = _sizePerChar;
+  }
+  
+  int offscreenHeight = offscreenPercentage.height();
+  int offScreenWidth = offscreenPercentage.width();
+
+  offscreenPercentage.setFont(&FreeMonoBold18pt7b);
+  offscreenPercentage.setCursor(2 + extraPadLeft, (offscreenPercentage.height() / 2) + 16);
+  offscreenPercentage.setTextColor(textColor);
+  offscreenPercentage.setTextSize(2);
+  offscreenPercentage.println(String(x) + "%");
+  tft.drawRGBBitmap((SCREEN_WIDTH/6 - 2), SCREEN_HEIGHT/3, offscreenPercentage.getBuffer(), offScreenWidth, offscreenHeight);
+}
+
+void writeSelector(char* text) {
+  int screenCordLength = int(((SCREEN_WIDTH / 2) * sqrt(63)) / 4);
+  int left = (SCREEN_WIDTH - screenCordLength) / 2;
+  int top = 160;
+  tft.fillRect(left + 20, top, screenCordLength - 40, 32, GC9A01A_BLACK);
+  // We have space for 9 chars in one line. Center the characters based on the length of the string
+  int textLen = strlen(text);
+  int padLeft = (9 - textLen) * (_sizePerChar / 2);
+  tft.setCursor(left + 28 + padLeft, top + _sizePerChar + 4);
+  tft.setTextColor(GC9A01A_WHITE);
   tft.setTextSize(1);
-  tft.println("Kitchen");
+  tft.println(text);
 }
 
-void wakeDisplay(uint8_t displayNumber) {
+void setDisplaysToActive() {
   digitalWrite(LCD_BL, HIGH);
+  tft.sendCommand(GC9A01A_DISPON);
+  isDisplaysIdle = false;
 }
 
-void sleepDisplay(uint8_t displayNumber) {
+void setDisplaysToIdle() {
+  isDisplaysIdle = true;
   tft.sendCommand(GC9A01A_DISPOFF);
   digitalWrite(LCD_BL, LOW);
 }

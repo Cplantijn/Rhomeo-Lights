@@ -9,6 +9,7 @@
 #define SCREEN_WIDTH 240
 #define SCREEN_HEIGHT 240
 #define DEG2RAD 0.0174532925
+#define IDLE_TIMEOUT_MS 5000
 
 // Display pins
 #define LCD_CS  21
@@ -19,10 +20,15 @@
 #include <Adafruit_GC9A01A.h>
 
 extern Adafruit_GC9A01A tft;
+extern GFXcanvas16 offscreenPercentage;
+extern bool isIdleTimeoutActive;
+extern bool isDisplaysIdle;
+extern unsigned long idleTimeoutStartTime;
 
-void writeText();
-void fillArc(int x, int y, int start_angle, int seg_count, int rx, int ry, int w, unsigned int color);
-void wakeDisplay(uint8_t displayNumber);
-void sleepDisplay(uint8_t displayNumber);
+void writePercentage(int x, int textColor);
+void writeSelector(char* text);
+void fillArc(int start_angle, int seg_count, int thickness, unsigned int color);
+void setDisplaysToActive();
+void setDisplaysToIdle();
 
 #endif
