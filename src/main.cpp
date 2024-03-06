@@ -1,48 +1,80 @@
 #include <Arduino.h>
+#include <Fonts/FreeMonoBold18pt7b.h>
+#include <ButtonDebounce.h>
+#include <cmath>
+
 #include "display.h"
 #include "util.h"
 #include "encoder.h"
 #include "spectrum.h"
 #include "selector.h"
+#include "leds.h"
 #include "state.h"
+#include "FastLED.h"
+#include "FastLED_RGBW.h"
 
-#include <Fonts/FreeMonoBold18pt7b.h>
-#include <ButtonDebounce.h>
+volatile bool brightnessPressed = false;
+volatile bool spectrumPressed = false;
+
+CRGBW cabinLeds[CABIN_NUM_LEDS];
+CRGB *cabinLedsRGB = (CRGB *) &cabinLeds[0];
 
 std::vector<Color> spectrumSteps;
 
-unsigned long previousMillis = 0; 
-const long interval = 10000; // Interval for printing heap statistics (in milliseconds)
+ButtonDebounce selectorBtn(SELECTOR_BUTTON_A, 50);
+ButtonDebounce brightnessBtn(BRIGHTNESS_ENC_BUTTON, 250);
+ButtonDebounce spectrumBtn(SPECTRUM_ENC_BUTTON, 250);
 
-ButtonDebounce buttonA(SELECTOR_BUTTON_A, 50);
-
-void buttonChanged(const int state){
+void onSelectorButtonPress(const int state){
   if (state == LOW) {
     cycleCurrentSelector();
   }
 }
 
+void onBrightnessButtonPress(const int state){
+  if (state == LOW) {
+    SelectorState currentSelectorState = getStateForSelector(currentSelector);
+    brightnessPressed = true;
+
+    if (currentSelectorState.brightness > 0) {
+      setBrightness(currentSelector, 0);
+    } else {
+      setBrightness(currentSelector, 50);
+    }
+  }
+}
+
+void onSpectrumButtonPress(const int state){
+  if (state == LOW) {
+    spectrumPressed = true;
+    setWhite(currentSelector, true);
+  }
+}
+
 void onBrightnessChange() {
   int changeVal = readBrightnessEncoder();
-  updateBrightness(currentSelector, changeVal);
+  incrementBrightness(currentSelector, changeVal);
 }
 
 void onSpectrumChange() {
   int changeVal = readSpectrumEncoder();
-  updateSpectrum(currentSelector, changeVal);
+  incrementSpectrum(currentSelector, changeVal);
 }
+
 
 void setup() {
   // Start the serial monitor to show output
   Serial.begin(115200);
 
-  // Selector button
-  buttonA.setCallback(buttonChanged);
-
   // Display pins
   pinMode(LCD_BL, OUTPUT);
 
   // Set encoder pins and attach interrupts
+  // Spectrum encoders
+  pinMode(SPECTRUM_ENC_A, INPUT_PULLUP);
+  pinMode(SPECTRUM_ENC_B, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(SPECTRUM_ENC_A), onSpectrumChange, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(SPECTRUM_ENC_B), onSpectrumChange, CHANGE);
 
   // Brightness encoders
   pinMode(BRIGHTNESS_ENC_A, INPUT_PULLUP);
@@ -50,77 +82,126 @@ void setup() {
   attachInterrupt(digitalPinToInterrupt(BRIGHTNESS_ENC_A), onBrightnessChange, CHANGE);
   attachInterrupt(digitalPinToInterrupt(BRIGHTNESS_ENC_B), onBrightnessChange, CHANGE);
 
-  // Spectrum encoders
-  pinMode(SPECTRUM_ENC_A, INPUT_PULLUP);
-  pinMode(SPECTRUM_ENC_B, INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(SPECTRUM_ENC_A), onSpectrumChange, CHANGE);
-  attachInterrupt(digitalPinToInterrupt(SPECTRUM_ENC_B), onSpectrumChange, CHANGE);
-
   spectrumSteps = generateSpectrumSteps(SPECTRUM_STEPS);
   initializeStates();
+  
+  // Buttons button
+  selectorBtn.setCallback(onSelectorButtonPress);
+  brightnessBtn.setCallback(onBrightnessButtonPress);
+  spectrumBtn.setCallback(onSpectrumButtonPress);
+
   tft.begin();
   tft.fillScreen(GC9A01A_BLACK);
   tft.setFont(&FreeMonoBold18pt7b);
   setDisplaysToActive();
   writeSelector(currentSelector);
+
+  FastLED.addLeds<WS2812B, CABIN_DATA_PIN, RGB>(cabinLedsRGB, getRGBWsize(CABIN_NUM_LEDS));
+  FastLED.show();
 }
 
 void loop() {
-  unsigned long currentMillis = millis();
+  selectorBtn.update();
+  spectrumBtn.update();
+  brightnessBtn.update();
 
-  if (currentMillis - previousMillis >= interval) {
-    previousMillis = currentMillis;
-    Serial.print("Free heap: ");
-    Serial.println(ESP.getFreeHeap()); 
+  if (brightnessPressed) {
+    brightnessPressed = false;
+    Serial.println("Brightness pressed");
   }
 
-  buttonA.update();
+  if (spectrumPressed) {
+    spectrumPressed = false;
+    Serial.println("Spectrum pressed");
+  }
+
+  static long idleTimeoutStartTime = 0;
   static int lastRawBrightnessVal = 0;
   static int lastRawSpectrumVal = 0;
   static int lastBrightnessVal = -1;
   static int lastSpectrumVal = -1;
+  static int lastIsWhiteVal = false;
   static char lastSelector[9];
 
-  bool hasRawChange = false;
+  bool hasInputsChanged = false;
 
   if (strcmp(currentSelector, lastSelector) != 0) {
     strncpy(lastSelector, currentSelector, 8);
     lastSelector[8] = '\0';
     writeSelector(currentSelector);
-    hasRawChange = true;
+    hasInputsChanged = true;
   }
 
-  SelectorState currentState = getStateForSelector(currentSelector);
+  SelectorState currentSelectorState = getStateForSelector(currentSelector);
 
   if (rawBrightnessVal != lastRawBrightnessVal) {
-    hasRawChange = true;
+    lastRawBrightnessVal = rawBrightnessVal;
+    hasInputsChanged = true;
   }
 
   if (rawSpectrumVal != lastRawSpectrumVal) {
     lastRawSpectrumVal = rawSpectrumVal;
-    hasRawChange = true;
+    hasInputsChanged = true;
   }
 
-  if (hasRawChange) {
+  if (lastIsWhiteVal != currentSelectorState.isWhite) {
+    hasInputsChanged = true;
+  }
+
+  if (lastBrightnessVal != currentSelectorState.brightness) {
+    hasInputsChanged = true;
+  }
+
+  if (hasInputsChanged) {
     isIdleTimeoutActive = false;
     if (isDisplaysIdle) {
       setDisplaysToActive();
     }
   }
   
-  if (currentState.state.brightness != lastBrightnessVal || currentState.state.spectrum != lastSpectrumVal) {
-    lastBrightnessVal = currentState.state.brightness;
-    lastSpectrumVal = currentState.state.spectrum;
+  if (currentSelectorState.brightness != lastBrightnessVal || currentSelectorState.spectrum != lastSpectrumVal || lastIsWhiteVal != currentSelectorState.isWhite) {
+    lastBrightnessVal = currentSelectorState.brightness;
+    lastSpectrumVal = currentSelectorState.spectrum;
+    lastIsWhiteVal = currentSelectorState.isWhite;
 
-    Color color = spectrumSteps[currentState.state.spectrum];
-    String colorStr = String(color.r) + ", " + String(color.g) + ", " + String(color.b);
-    int tftColor = colorTo565(color);
+    Color currentColor;
+
+    if (currentSelectorState.isWhite) {
+      currentColor.r = 255;
+      currentColor.g = 255;
+      currentColor.b = 255;
+    } else {
+      currentColor = spectrumSteps[currentSelectorState.spectrum];
+    }
+
+    int tftColor = colorTo565(currentColor);
 
     // Draw the arc
-    int arcSegments = normalizeRangeInt(currentState.state.brightness, 0, 100, 0, 91);
+    int arcSegments = normalizeRangeInt(currentSelectorState.brightness, 0, 100, 0, 91);
 
     fillArc(269, arcSegments, 24, tftColor);
-    writePercentage(currentState.state.brightness, tftColor);
+    writePercentage(currentSelectorState.brightness, tftColor);
+
+    if (strcmp(currentSelector, "Cabin") == 0) {
+      if (currentSelectorState.isWhite) {
+        for(int i = 0; i < CABIN_NUM_LEDS; i++){
+          cabinLeds[i] = CRGBW(0, 0, 0, round((currentSelectorState.brightness / 100.0) * 255));
+        }
+      } else {
+        // Scale the color based on the brightness (0-100%
+        int scaledRed = round(currentColor.r * (currentSelectorState.brightness / 100.0));
+        int scaledGreen = round(currentColor.g * (currentSelectorState.brightness / 100.0));
+        int scaledBlue = round(currentColor.b * (currentSelectorState.brightness / 100.0));
+
+        // Serial.println("Scaled red: " + String(scaledRed) + " Scaled green: " + String(scaledGreen) + " Scaled blue: " + String(scaledBlue));
+
+        for(int i = 0; i < CABIN_NUM_LEDS; i++){
+          cabinLeds[i] = CRGBW(scaledRed, scaledGreen, scaledBlue, 0);
+        }
+      }
+
+      FastLED.show();
+    }
   }
   
   if (!isIdleTimeoutActive) {
@@ -128,12 +209,9 @@ void loop() {
     isIdleTimeoutActive = true;
   }
 
-  if (isIdleTimeoutActive && (millis() - idleTimeoutStartTime >= IDLE_TIMEOUT_MS)) {
+  if (isIdleTimeoutActive && !isDisplaysIdle && (millis() - idleTimeoutStartTime >= IDLE_TIMEOUT_MS)) {
     setDisplaysToIdle();
     isIdleTimeoutActive = false;
-
-    // strncpy(currentSelector, SELECTORS[0], 8);
-    // currentSelector[8] = '\0';
   }
 }
 

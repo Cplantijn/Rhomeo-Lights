@@ -46,7 +46,6 @@ void fillArc(int start_angle, int seg_count, int w, unsigned int colour) {
     _offscreenTopHalf.fillTriangle(x1, y1, x2, y2, x3, y3, colour);
   }
 
-  Serial.println("Drawing arc X: " + String(x) + " Y: " + String(y) + " RX: " + String(rx) + " RY: " + String(ry) + " Width: " + String(screenWidth));
   tft.drawRGBBitmap(0, 0, _offscreenTopHalf.getBuffer(), screenWidth, screenHeight);
 }
 

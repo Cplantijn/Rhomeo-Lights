@@ -7,8 +7,12 @@
 #define BRIGHTNESS_ENC_A 15
 #define BRIGHTNESS_ENC_B 2
 
+#define BRIGHTNESS_ENC_BUTTON 19
+
 #define SPECTRUM_ENC_A 17
 #define SPECTRUM_ENC_B 5
+
+#define SPECTRUM_ENC_BUTTON 0
 
 #define _pauseLength 25000  
 #define _fastIncrement 10 
