@@ -1,6 +1,6 @@
 #include "display.h"
 
-Adafruit_GC9A01A tft = Adafruit_GC9A01A(LCD_CS, LCD_DC);
+Adafruit_GC9A01A tft = Adafruit_GC9A01A(LCD_CS, LCD_DC, LCD_RST);
 GFXcanvas16 _offscreenTopHalf = GFXcanvas16(SCREEN_WIDTH, SCREEN_HEIGHT/2);
 GFXcanvas16 offscreenPercentage = GFXcanvas16(SCREEN_WIDTH/1.45, SCREEN_HEIGHT/4);
 

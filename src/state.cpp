@@ -62,6 +62,7 @@ void incrementSpectrum(const char* selectorName, int deltaChange) {
   for (size_t i = 0; i < NUM_SELECTORS; ++i) { 
     if (strcmp(currentState[i].selectorName, selectorName) == 0) {
       int nextSpectrum = currentState[i].spectrum + deltaChange;
+
       if (currentState[i].isWhite) {
         currentState[i].isWhite = false;
       }

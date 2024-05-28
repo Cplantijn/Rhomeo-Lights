@@ -32,4 +32,3 @@ This project should run on most microcontrollers supporting the Arduino Framewor
 ### Display
 
 * State is shown via a UI indicating brightness as a semi-circle arc with a percentage. The arc is filled with the same color as the current spectrum color. The display also has a label for the current selected group that can be cycled with the selector button.
-

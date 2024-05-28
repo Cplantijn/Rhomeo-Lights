@@ -7,6 +7,7 @@
  * 
 */
 
+#include <cstdint>
 #ifndef FastLED_RGBW_h
 #define FastLED_RGBW_h
 

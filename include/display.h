@@ -12,10 +12,10 @@
 #define IDLE_TIMEOUT_MS 5000
 
 // Display pins
-#define LCD_CS  21
+#define LCD_CS  22
 #define LCD_DC  16
 #define LCD_RST 4
-#define LCD_BL  22
+#define LCD_BL  17
 
 #include <Adafruit_GC9A01A.h>
 
