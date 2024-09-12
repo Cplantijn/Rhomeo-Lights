@@ -17,8 +17,6 @@
 #define LCD_RST 4
 #define LCD_BL  17
 
-#include <Adafruit_GC9A01A.h>
-
 extern Adafruit_GC9A01A tft;
 extern GFXcanvas16 offscreenPercentage;
 extern bool isIdleTimeoutActive;

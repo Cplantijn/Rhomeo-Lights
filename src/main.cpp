@@ -123,7 +123,7 @@ void setup() {
   spectrumBtn.setCallback(onSpectrumButtonPress);
 
   tft.begin();
-  tft.fillScreen(GC9A01A_WHITE);
+  tft.fillScreen(GC9A01A_BLACK);
   tft.setFont(&FreeMonoBold18pt7b);
   setDisplaysToActive();
   writeSelector(currentSelector);
@@ -196,7 +196,7 @@ void loop() {
   if (hasInputsChanged) {
     isIdleTimeoutActive = false;
     if (isDisplaysIdle) {
-      // setDisplaysToActive();
+      setDisplaysToActive();
     }
   }
   
@@ -272,6 +272,7 @@ void loop() {
 
   if (isIdleTimeoutActive && !isDisplaysIdle && (millis() - idleTimeoutStartTime >= IDLE_TIMEOUT_MS)) {
     setDisplaysToIdle();
+    setSelector(STR_CABIN);
     isIdleTimeoutActive = false;
   }
 }

@@ -15,6 +15,7 @@ extern char currentSelector[9];
 
 const SelectorState& getStateForSelector(const char* selectorName);
 void cycleCurrentSelector();
+void setSelector(const char* selectorName);
 void incrementBrightness(const char* selectorName, int newBrightness);
 void setBrightness(const char* selectorName, int value);
 void incrementSpectrum(const char* selectorName, int newSpectrum);

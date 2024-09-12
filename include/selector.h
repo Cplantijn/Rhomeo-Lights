@@ -7,6 +7,7 @@
 
 #define STR_AWNING "Awning"
 // #define STR_KITCHEN "Kitchen"
+
 #define STR_CABIN "Cabin"
 #define NUM_SELECTORS 2 // Need to define amount of selectors for state init
 

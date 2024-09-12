@@ -86,3 +86,14 @@ void cycleCurrentSelector() {
   strncpy(currentSelector, SELECTORS[nextIndex], 8); 
   currentSelector[8] = '\0';
 }
+
+void setSelector(const char* selectorName) {
+  // Safer way to setting selector since it must match element in SELECTORS 
+  for (size_t i = 0; i < NUM_SELECTORS; ++i) {
+    if (strcmp(SELECTORS[i], selectorName) == 0) {
+      strncpy(currentSelector, selectorName, 8);
+      currentSelector[8] = '\0';
+      return;
+    }
+  }
+}
