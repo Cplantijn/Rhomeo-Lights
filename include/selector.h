@@ -3,7 +3,7 @@
 #include <string>
 #include <array>
 
-#define SELECTOR_BUTTON_A 13
+#define SELECTOR_BUTTON 13
 
 #define STR_AWNING "Awning"
 // #define STR_KITCHEN "Kitchen"

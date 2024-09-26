@@ -13,7 +13,7 @@
 #include "FastLED.h"
 #include "FastLED_RGBW.h"
 
-// volatile bool brightnessPressed = false;
+volatile bool brightnessPressed = false;
 volatile bool spectrumPressed = false;
 volatile bool selectorPressed = false;
 
@@ -31,30 +31,34 @@ CRGBW awningLeds[AWNING_NUM_LEDS];
 CRGB *awningLedsRGB = (CRGB *) &awningLeds[0];
 std::vector<Color> spectrumSteps;
 
-ButtonDebounce selectorBtn(SELECTOR_BUTTON_A, 250);
-// ButtonDebounce brightnessBtn(BRIGHTNESS_ENC_BUTTON, 250);
-ButtonDebounce spectrumBtn(SPECTRUM_ENC_BUTTON, 50);
+ButtonDebounce selectorBtn(SELECTOR_BUTTON, 250);
+
+ButtonDebounce brightnessBtnCab(BRIGHTNESS_ENC_CAB_BUTTON, 250);
+ButtonDebounce spectrumBtnCab(SPECTRUM_ENC_CAB_BUTTON, 250);
+
+ButtonDebounce brightnessBtnDoor(BRIGHTNESS_ENC_DOOR_BUTTON, 250);
+ButtonDebounce spectrumBtnDoor(SPECTRUM_ENC_DOOR_BUTTON, 250);
 
 void onSelectorButtonPress(const int state){
-
   if (state == LOW) {
     selectorPressed = true;
     cycleCurrentSelector();
+    Serial.println("SELECTOR pressed, Mode is now: " + String(currentSelector));
   }
 }
 
-// void onBrightnessButtonPress(const int state){
-//   if (state == LOW) {
-//     SelectorState currentSelectorState = getStateForSelector(currentSelector);
-//     brightnessPressed = true;
+void onBrightnessButtonPress(const int state){
+  if (state == LOW) {
+    SelectorState currentSelectorState = getStateForSelector(currentSelector);
+    brightnessPressed = true;
 
-//     if (currentSelectorState.brightness > 0) {
-//       setBrightness(currentSelector, 0);
-//     } else {
-//       setBrightness(currentSelector, 50);
-//     }
-//   }
-// }
+    if (currentSelectorState.brightness > 0) {
+      setBrightness(currentSelector, 0);
+    } else {
+      setBrightness(currentSelector, 50);
+    }
+  }
+}
 
 void onSpectrumButtonPress(const int state){
   if (state == LOW) {
@@ -62,7 +66,7 @@ void onSpectrumButtonPress(const int state){
   }
 }
 
-void onBrightnessChange() {
+void onBrightnessChangeCab() {
   unsigned long currentTime = millis();
 
   if (currentTime - lastBrightnessInteraction > encWaitTime) {
@@ -72,11 +76,25 @@ void onBrightnessChange() {
 
   lastBrightnessInteraction = currentTime;
 
-  int changeVal = readBrightnessEncoder();
+  int changeVal = readBrightnessEncoderCab();
   incrementBrightness(currentSelector, changeVal);
 }
 
-void onSpectrumChange() {
+
+void onBrightnessChangeDoor() {
+  unsigned long currentTime = millis();
+
+  if (currentTime - lastBrightnessInteraction > encWaitTime) {
+    lastBrightnessInteraction = currentTime;
+    return;
+  }
+
+  lastBrightnessInteraction = currentTime;
+  int changeVal = readBrightnessEncoderDoor();
+  incrementBrightness(currentSelector, changeVal);
+}
+
+void onSpectrumChangeCab() {
   unsigned long currentTime = millis();
   // Debouncing the encoder
   if (currentTime - lastSpectrumInteraction > encWaitTime) {
@@ -85,67 +103,99 @@ void onSpectrumChange() {
   }
 
   lastSpectrumInteraction = currentTime;
-  int changeVal = readSpectrumEncoder();
+  // int changeVal = readSpectrumEncoderCab();
+  // incrementSpectrum(currentSelector, changeVal);
+}
+
+void onSpectrumChangeDoor() {
+  unsigned long currentTime = millis();
+  // Debouncing the encoder
+  if (currentTime - lastSpectrumInteraction > encWaitTime) {
+    lastSpectrumInteraction = currentTime;
+    return;
+  }
+
+  lastSpectrumInteraction = currentTime;
+  int changeVal = readSpectrumEncoderDoor();
   incrementSpectrum(currentSelector, changeVal);
 }
 
 
 void setup() {
-  // Start the serial monitor to show output
   Serial.begin(115200);
 
-  // Display pins
-  pinMode(LCD_BL, OUTPUT);
+  // ----------------- SHARED -----------------
+  pinMode(SELECTOR_BUTTON, INPUT_PULLUP);
+  selectorBtn.setCallback(onSelectorButtonPress);
 
-  // Set encoder pins and attach interrupts
-  // Spectrum encoders
-  // pinMode(SPECTRUM_ENC_A, INPUT_PULLUP);
-  // pinMode(SPECTRUM_ENC_B, INPUT_PULLUP);
-  // attachInterrupt(digitalPinToInterrupt(SPECTRUM_ENC_A), onSpectrumChange, CHANGE);
-  // attachInterrupt(digitalPinToInterrupt(SPECTRUM_ENC_B), onSpectrumChange, CHANGE);
+  // ----------------- CABIN -----------------
 
-  // Brightness encoders
-  pinMode(BRIGHTNESS_ENC_A, INPUT_PULLUP);
-  pinMode(BRIGHTNESS_ENC_B, INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(BRIGHTNESS_ENC_A), onBrightnessChange, CHANGE);
-  attachInterrupt(digitalPinToInterrupt(BRIGHTNESS_ENC_B), onBrightnessChange, CHANGE);
+  pinMode(BRIGHTNESS_ENC_CAB_BUTTON, INPUT_PULLUP);
+  pinMode(BRIGHTNESS_ENC_CAB_A, INPUT_PULLUP);
+  pinMode(BRIGHTNESS_ENC_CAB_B, INPUT_PULLUP);
 
+  pinMode(SPECTRUM_ENC_CAB_BUTTON, INPUT_PULLUP);
+  pinMode(SPECTRUM_ENC_CAB_A, INPUT_PULLUP);
+  pinMode(SPECTRUM_ENC_CAB_B, INPUT_PULLUP);
+
+  brightnessBtnCab.setCallback(onBrightnessButtonPress);
+  spectrumBtnCab.setCallback(onSpectrumButtonPress);
+
+  attachInterrupt(digitalPinToInterrupt(BRIGHTNESS_ENC_CAB_A), onBrightnessChangeCab, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(BRIGHTNESS_ENC_CAB_B), onBrightnessChangeCab, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(SPECTRUM_ENC_CAB_A), onSpectrumChangeCab, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(SPECTRUM_ENC_CAB_B), onSpectrumChangeCab, CHANGE);
+
+  // ----------------- DOOR -----------------
+  pinMode(BRIGHTNESS_ENC_DOOR_BUTTON, INPUT_PULLUP);
+  pinMode(BRIGHTNESS_ENC_DOOR_A, INPUT_PULLUP);
+  pinMode(BRIGHTNESS_ENC_DOOR_B, INPUT_PULLUP);
+
+  pinMode(SPECTRUM_ENC_DOOR_BUTTON, INPUT_PULLUP);
+  pinMode(SPECTRUM_ENC_DOOR_A, INPUT_PULLUP);
+  pinMode(SPECTRUM_ENC_DOOR_B, INPUT_PULLUP);
+
+  brightnessBtnDoor.setCallback(onBrightnessButtonPress);
+  spectrumBtnDoor.setCallback(onSpectrumButtonPress);
+
+  attachInterrupt(digitalPinToInterrupt(BRIGHTNESS_ENC_DOOR_A), onBrightnessChangeDoor, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(BRIGHTNESS_ENC_DOOR_B), onBrightnessChangeDoor, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(SPECTRUM_ENC_DOOR_A), onSpectrumChangeDoor, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(SPECTRUM_ENC_DOOR_B), onSpectrumChangeDoor, CHANGE);
+
+  // ----------------- STATE -----------------
   spectrumSteps = generateSpectrumSteps(SPECTRUM_STEPS);
   initializeStates();
   
-  // Buttons init
-  // pinMode(SELECTOR_BUTTON_A, INPUT_PULLUP);
-  // pinMode(BRIGHTNESS_ENC_BUTTON, INPUT_PULLUP);
-  // pinMode(SPECTRUM_ENC_BUTTON, INPUT_PULLUP);
-
-  selectorBtn.setCallback(onSelectorButtonPress);
-  // brightnessBtn.setCallback(onBrightnessButtonPress);
-  spectrumBtn.setCallback(onSpectrumButtonPress);
-
+  // ----------------- DISPLAY -----------------
+  pinMode(LCD_BL, OUTPUT);
   tft.begin();
   tft.fillScreen(GC9A01A_BLACK);
   tft.setFont(&FreeMonoBold18pt7b);
   setDisplaysToActive();
   writeSelector(currentSelector);
 
+  // ----------------- LEDS -----------------
   FastLED.addLeds<WS2812B, CABIN_DATA_PIN, RGB>(cabinLedsRGB, getRGBWsize(CABIN_NUM_LEDS));
   FastLED.addLeds<WS2812B, AWNING_DATA_PIN, RGB>(awningLedsRGB, getRGBWsize(AWNING_NUM_LEDS));
   FastLED.clear();
   int numLeds = FastLED.size();
-  Serial.println("NUM LEDS: " + String(numLeds));
   FastLED.setBrightness(255);
   FastLED.show();
 }
 
 void loop() {
   selectorBtn.update();
-  spectrumBtn.update();
-  // brightnessBtn.update();
 
-  // if (brightnessPressed) {
-  //   brightnessPressed = false;
-  //   Serial.println("Brightness pressed");
-  // }
+  brightnessBtnCab.update();
+  spectrumBtnCab.update();
+  
+  spectrumBtnDoor.update();
+  brightnessBtnDoor.update();
+
+  if (brightnessPressed) {
+    brightnessPressed = false;
+  }
 
   if (selectorPressed) {
     selectorPressed = false;
@@ -185,11 +235,10 @@ void loop() {
     hasInputsChanged = true;
   }
 
-  if (lastIsWhiteVal != currentSelectorState.isWhite) {
-    hasInputsChanged = true;
-  }
-
-  if (lastBrightnessVal != currentSelectorState.brightness) {
+  if (
+    lastIsWhiteVal != currentSelectorState.isWhite
+    || lastSpectrumVal != currentSelectorState.spectrum
+    || lastBrightnessVal != currentSelectorState.brightness) {
     hasInputsChanged = true;
   }
 

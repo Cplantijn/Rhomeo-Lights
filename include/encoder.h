@@ -4,25 +4,38 @@
 #define ENCODERS_H
 
 // Define rotary encoder pins
-#define BRIGHTNESS_ENC_A 12
-#define BRIGHTNESS_ENC_B 14
+// IN CABIN
+#define BRIGHTNESS_ENC_CAB_A 12
+#define BRIGHTNESS_ENC_CAB_B 14
 
-#define BRIGHTNESS_ENC_BUTTON 35
+#define BRIGHTNESS_ENC_CAB_BUTTON 35
 
-#define SPECTRUM_ENC_A 26
-#define SPECTRUM_ENC_B 25
+#define SPECTRUM_ENC_CAB_A 26
+#define SPECTRUM_ENC_CAB_B 25
  
-#define SPECTRUM_ENC_BUTTON 32
+#define SPECTRUM_ENC_CAB_BUTTON 32
 
+// IN FRIDGE/DOOR
+#define BRIGHTNESS_ENC_DOOR_A 27
+#define BRIGHTNESS_ENC_DOOR_B 33
 
-#define ENC_WAIT_TIME 50;  // 50ms wait time before reading encoder
+#define BRIGHTNESS_ENC_DOOR_BUTTON 5
+
+#define SPECTRUM_ENC_DOOR_A 15
+#define SPECTRUM_ENC_DOOR_B 2
+
+#define SPECTRUM_ENC_DOOR_BUTTON 0
+
 
 #define _pauseLength 25000  
 #define _fastIncrement 10 
 extern volatile int rawBrightnessVal;
 extern volatile int rawSpectrumVal;
 
-int readBrightnessEncoder(); 
-int readSpectrumEncoder();
+int readBrightnessEncoderCab(); 
+int readBrightnessEncoderDoor(); 
+
+int readSpectrumEncoderCab();
+int readSpectrumEncoderDoor(); 
 
 #endif
