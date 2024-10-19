@@ -1,4 +1,4 @@
-#include "spectrum.h"
+#include <spectrum.h>
 #include <cmath>
 
 Color generateSpectrumColor(double position) {

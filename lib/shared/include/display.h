@@ -11,11 +11,11 @@
 #define DEG2RAD 0.0174532925
 #define IDLE_TIMEOUT_MS 5000
 
-// Display pins
-#define LCD_CS  22
-#define LCD_DC  16
-#define LCD_RST 4
-#define LCD_BL  17
+// ESP32 pin definitions
+#define LCD_CS 22
+#define LCD_DC 16
+#define LCD_RST -1
+#define LCD_BL 17
 
 extern Adafruit_GC9A01A tft;
 extern GFXcanvas16 offscreenPercentage;

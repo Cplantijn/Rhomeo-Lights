@@ -1,8 +1,8 @@
-#include "selector.h"
+#include <selector.h>
 #include <Arduino.h>
 #include "state.h"
 #include <cstring> // Include for string functions
-#include "spectrum.h"
+#include <spectrum.h>
 
 SelectorState currentState[NUM_SELECTORS]; 
 char currentSelector[9];

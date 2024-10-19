@@ -1,7 +1,7 @@
 #ifndef STATE_H
 #define STATE_H
 #include <string>
-#include "selector.h"
+#include <selector.h>
 
 struct SelectorState {
   char selectorName[9]; // 8 characters + null terminator

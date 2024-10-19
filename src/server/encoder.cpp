@@ -1,6 +1,6 @@
 #include <Arduino.h>
 #include "encoder.h"
-#include "spectrum.h"
+#include <spectrum.h>
 
 unsigned long _lastIncReadTime = micros(); 
 unsigned long _lastDecReadTime = micros();
