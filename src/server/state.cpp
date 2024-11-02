@@ -61,12 +61,19 @@ void setWhite(const char* selectorName, bool isWhite) {
 void incrementSpectrum(const char* selectorName, int deltaChange) {
   for (size_t i = 0; i < NUM_SELECTORS; ++i) { 
     if (strcmp(currentState[i].selectorName, selectorName) == 0) {
-      int nextSpectrum = currentState[i].spectrum + deltaChange;
+      int newSpectrum = (currentState[i].spectrum + deltaChange) % SPECTRUM_STEPS;
+      
+      if (newSpectrum < 0) {
+        newSpectrum += SPECTRUM_STEPS; 
+      }
+      
+      // Convert to 0-19 range
+      int spectrumIndex = newSpectrum / (SPECTRUM_STEPS / NUM_SPECTRUM_COLORS);
 
       if (currentState[i].isWhite) {
         currentState[i].isWhite = false;
       }
-      currentState[i].spectrum = std::max(0, std::min(int(SPECTRUM_STEPS), nextSpectrum));
+      currentState[i].spectrum = spectrumIndex;
       return;
     }
   }

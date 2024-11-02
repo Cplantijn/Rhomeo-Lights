@@ -17,12 +17,6 @@ volatile bool brightnessPressed = false;
 volatile bool spectrumPressed = false;
 volatile bool selectorPressed = false;
 
-// Timeouts and debounces
-const int encWaitTime = 50;
-
-unsigned long lastBrightnessInteraction = 0;
-unsigned long lastSpectrumInteraction = 0;
-
 CRGBW cabinLeds[CABIN_NUM_LEDS];
 CRGB *cabinLedsRGB = (CRGB *) &cabinLeds[0];
 
@@ -34,6 +28,16 @@ ButtonDebounce selectorBtn(SELECTOR_BUTTON, 50);
 ButtonDebounce brightnessBtn(BRIGHTNESS_BTN, 50);
 ButtonDebounce spectrumBtn(SPECTRUM_BTN, 50);
 
+// The van is an electrically noisy environment, especially around
+// the kitchen area where fans, coffee makers, microwaves, stove pezio's
+// etc are used. This interrupt handler is used to debounce the encoder
+// interrupts. Movement is only considered if it has been proceeded by another
+// movement 20ms prior. Every 2 seconds things reset.
+volatile unsigned long lastMovementTime = 0;
+const unsigned long debounceDelay = 20; // 20ms debounce delay
+const unsigned long inactivityThreshold = 2000; //
+
+
 void onSelectorButtonPress(const int state){
   if (state == LOW) {
     selectorPressed = true;
@@ -42,75 +46,60 @@ void onSelectorButtonPress(const int state){
   }
 }
 
-void onBrightnessButtonPress(const int state){
-  if (state == LOW) {
-    SelectorState currentSelectorState = getStateForSelector(currentSelector);
-    brightnessPressed = true;
+// void onBrightnessButtonPress(const int state){
+//   if (state == LOW) {
+//     SelectorState currentSelectorState = getStateForSelector(currentSelector);
+//     brightnessPressed = true;
 
-    if (currentSelectorState.brightness > 0) {
-      setBrightness(currentSelector, 0);
-    } else {
-      setBrightness(currentSelector, 5);
-    }
-  }
-}
+//     if (currentSelectorState.brightness > 0) {
+//       setBrightness(currentSelector, 0);
+//     } else {
+//       setBrightness(currentSelector, 5);
+//     }
+//   }
+// }
 
-void onSpectrumButtonPress(const int state){
-  if (state == LOW) {
-    spectrumPressed = true;
-  }
-}
+// void onSpectrumButtonPress(const int state){
+//   if (state == LOW) {
+//     spectrumPressed = true;
+//   }
+// }
 
 void onBrightnessChangeCab() {
   unsigned long currentTime = millis();
-
-  if (currentTime - lastBrightnessInteraction > encWaitTime) {
-    lastBrightnessInteraction = currentTime;
-    return;
+  
+  if ((currentTime - lastMovementTime) > inactivityThreshold) {
+    // Reset debounce timer if inactive for more than 2 seconds
+    lastMovementTime = currentTime;
   }
 
-  lastBrightnessInteraction = currentTime;
-
-  int changeVal = readBrightnessEncoderCab();
-  incrementBrightness(currentSelector, changeVal);
+  if ((currentTime - lastMovementTime) > debounceDelay) {
+    int changeVal = readBrightnessEncoderCab();
+    incrementBrightness(currentSelector, changeVal);
+    return;
+  }
 }
 
 
 void onBrightnessChangeDoor() {
   unsigned long currentTime = millis();
-
-  if (currentTime - lastBrightnessInteraction > encWaitTime) {
-    lastBrightnessInteraction = currentTime;
-    return;
+  if ((currentTime - lastMovementTime) > inactivityThreshold) {
+    // Reset debounce timer if inactive for more than 2 seconds
+    lastMovementTime = currentTime;
   }
 
-  lastBrightnessInteraction = currentTime;
-  int changeVal = readBrightnessEncoderDoor();
-  incrementBrightness(currentSelector, changeVal);
+  if ((currentTime - lastMovementTime) > debounceDelay) {
+    int changeVal = readBrightnessEncoderDoor();
+    incrementBrightness(currentSelector, changeVal);
+  }
 }
 
 // void onSpectrumChangeCab() {
-//   unsigned long currentTime = millis();
-//   // Debouncing the encoder
-//   if (currentTime - lastSpectrumInteraction > encWaitTime) {
-//     lastSpectrumInteraction = currentTime;
-//     return;
-//   }
-
-//   lastSpectrumInteraction = currentTime;
 //   int changeVal = readSpectrumEncoderCab();
 //   incrementSpectrum(currentSelector, changeVal);
 // }
 
 // void onSpectrumChangeDoor() {
-//   unsigned long currentTime = millis();
-//   // Debouncing the encoder
-//   if (currentTime - lastSpectrumInteraction > encWaitTime) {
-//     lastSpectrumInteraction = currentTime;
-//     return;
-//   }
-
-//   lastSpectrumInteraction = currentTime;
 //   int changeVal = readSpectrumEncoderDoor();
 //   incrementSpectrum(currentSelector, changeVal);
 // }
@@ -125,10 +114,10 @@ void setup() {
   pinMode(SPECTRUM_BTN, INPUT_PULLUP);
 
   selectorBtn.setCallback(onSelectorButtonPress);
-  brightnessBtn.setCallback(onBrightnessButtonPress);
+  // brightnessBtn.setCallback(onBrightnessButtonPress);
   // spectrumBtn.setCallback(onSpectrumButtonPress);
-  // ----------------- CABIN -----------------
 
+  // ----------------- CABIN -----------------
   pinMode(BRIGHTNESS_ENC_CAB_A, INPUT_PULLUP);
   pinMode(BRIGHTNESS_ENC_CAB_B, INPUT_PULLUP);
 
@@ -141,8 +130,8 @@ void setup() {
   pinMode(BRIGHTNESS_ENC_DOOR_A, INPUT_PULLUP);
   pinMode(BRIGHTNESS_ENC_DOOR_B, INPUT_PULLUP);
 
-  // pinMode(SPECTRUM_ENC_DOOR_A, INPUT_PULLUP);
-  // pinMode(SPECTRUM_ENC_DOOR_B, INPUT_PULLUP);
+  pinMode(SPECTRUM_ENC_DOOR_A, INPUT_PULLUP);
+  pinMode(SPECTRUM_ENC_DOOR_B, INPUT_PULLUP);
 
   attachInterrupt(digitalPinToInterrupt(BRIGHTNESS_ENC_DOOR_A), onBrightnessChangeDoor, CHANGE);
   attachInterrupt(digitalPinToInterrupt(BRIGHTNESS_ENC_DOOR_B), onBrightnessChangeDoor, CHANGE);
@@ -150,7 +139,6 @@ void setup() {
   // attachInterrupt(digitalPinToInterrupt(SPECTRUM_ENC_DOOR_B), onSpectrumChangeDoor, CHANGE);
 
   // // ----------------- STATE -----------------
-  spectrumSteps = generateSpectrumSteps(SPECTRUM_STEPS);
   initializeStates();
   
   // ----------------- DISPLAY -----------------
@@ -165,6 +153,7 @@ void setup() {
   FastLED.addLeds<WS2812B, CABIN_DATA_PIN, RGB>(cabinLedsRGB, getRGBWsize(CABIN_NUM_LEDS));
   FastLED.addLeds<WS2812B, AWNING_DATA_PIN, RGB>(awningLedsRGB, getRGBWsize(AWNING_NUM_LEDS));
   FastLED.clear();
+
   int numLeds = FastLED.size();
   FastLED.setBrightness(255);
   FastLED.show();
@@ -173,7 +162,7 @@ void setup() {
 void loop() {
   selectorBtn.update();
   brightnessBtn.update();
-  // spectrumBtn.update();
+  spectrumBtn.update();
 
   if (brightnessPressed) {
     brightnessPressed = false;
@@ -184,10 +173,10 @@ void loop() {
     selectorPressed = false;
   }
 
-  // if (spectrumPressed) {
-  //   setWhite(currentSelector, true);
-  //   spectrumPressed = false;
-  // }
+  if (spectrumPressed) {
+    setWhite(currentSelector, true);
+    spectrumPressed = false;
+  }
 
   static long idleTimeoutStartTime = 0;
   static int lastRawBrightnessVal = 0;
@@ -229,8 +218,8 @@ void loop() {
     isIdleTimeoutActive = false;
 
     if (isDisplaysIdle) {
-      Serial.println("1,1");
       setDisplaysToActive();
+      Serial.println("1,1");
     }
   }
   
@@ -250,7 +239,7 @@ void loop() {
       currentColor.g = 255;
       currentColor.b = 255;
     } else {
-      currentColor = spectrumSteps[currentSelectorState.spectrum];
+      currentColor = SPECTRUM_COLORS[currentSelectorState.spectrum];
     }
     // Send Message to Client
     String colorMessage = "0," + String(currentSelector) + "," + String(currentColor.r) + "," + String(currentColor.g) + "," + String(currentColor.b) + "," + String(currentSelectorState.brightness);
@@ -307,9 +296,9 @@ void loop() {
 
   if (isIdleTimeoutActive && !isDisplaysIdle && (millis() - idleTimeoutStartTime >= IDLE_TIMEOUT_MS)) {
     setDisplaysToIdle();
-    Serial.println("1,0");
     setSelector(STR_CABIN);
     isIdleTimeoutActive = false;
+    Serial.println("1,0");
   }
 }
 

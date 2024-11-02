@@ -21,6 +21,7 @@ void writeSelectorToDisplay(String selector) {
 }
 
 void setup() {
+  pinMode(LCD_BL, OUTPUT);
   Serial.begin(115200); // Start the serial communication at 115200 baud rate
   tft.begin();
   tft.fillScreen(GC9A01A_BLACK);
@@ -73,6 +74,7 @@ void loop() {
       int messageVal = incomingData.substring(commaPos + 1).toInt();
 
       if (messageVal == 0) {
+        writeSelectorToDisplay(STR_CABIN);
         setDisplaysToIdle();
       } else if (messageVal == 1) {
         setDisplaysToActive();

@@ -1,54 +1,30 @@
 #include <spectrum.h>
 #include <cmath>
 
-Color generateSpectrumColor(double position) {
-  Color color;
+const Color SPECTRUM_COLORS[] = {
+  COLOR_BLAZING_RED,
+  COLOR_FIERY_RED,
+  COLOR_SUNRISE_ORANGE,
+  COLOR_ROYAL_GOLD,
+  COLOR_NEON_YELLOW,
+  COLOR_ELECTRIC_LIME,
+  COLOR_CYBER_GREEN,
+  COLOR_NEON_TEAL,
+  COLOR_AQUA_GLOW,
+  COLOR_ELECTRIC_BLUE,
+  COLOR_PLASMA_BLUE,
+  COLOR_TWILIGHT_BLUE,
+  COLOR_NEBULA_VIOLET,
+  COLOR_NEON_PURPLE,
+  COLOR_VIBRANT_PURPLE,
+  COLOR_LASER_PURPLE,
+  COLOR_MYSTIC_MAGENTA,
+  COLOR_COSMIC_PINK,
+  COLOR_NEON_PINK,
+  COLOR_HYPER_PINK
+};
 
-  // Cycle position within 0 to 1 range
-  position = fmod(position, 1.0);
-
-  // Calculate color components based on position
-  if (position < 1.0 / 6.0) {
-    color.r = 255;
-    color.g = static_cast<uint8_t>(255 * position * 6);
-    color.b = 0;
-  } else if (position < 2.0 / 6.0) {
-    color.r = static_cast<uint8_t>(255 * (2 - position * 6));
-    color.g = 255;
-    color.b = 0;
-  } else if (position < 3.0 / 6.0) {
-    color.r = 0;
-    color.g = 255;
-    color.b = static_cast<uint8_t>(255 * position * 6 - 2); 
-  } else if (position < 4.0 / 6.0) {
-    color.r = 0;
-    color.g = static_cast<uint8_t>(255 * (4 - position * 6));
-    color.b = 255;
-  } else if (position < 5.0 / 6.0) {
-    color.r = static_cast<uint8_t>(255 * position * 6 - 4);
-    color.g = 0;
-    color.b = 255;
-  } else {
-    color.r = 255;
-    color.g = 0;
-    color.b = static_cast<uint8_t>(255 * (6 - position * 6));
-  }
-
-  return color;
-}
-
-std::vector<Color> generateSpectrumSteps(int steps) {
-  std::vector<Color> spectrum;
-  spectrum.reserve(steps); // Pre-allocate space for efficiency
-
-  double stepSize = 1.0 / steps;
-  for (double position = 0.0; position < 1.0; position += stepSize) {
-    spectrum.push_back(generateSpectrumColor(position));
-  }
-
-  return spectrum;
-}
-
+const int NUM_SPECTRUM_COLORS = sizeof(SPECTRUM_COLORS) / sizeof(SPECTRUM_COLORS[0]);
 
 uint16_t colorTo565(const Color& color) {
   // Extract the most significant bits for each color component in the 565 format

@@ -92,16 +92,13 @@ void writeSelector(char* text) {
 // Set displays to active
 void setDisplaysToActive() {
   digitalWrite(LCD_BL, HIGH);
-
-  // Conditionally control displays
   tft.sendCommand(GC9A01A_DISPON);
   isDisplaysIdle = false;
 }
 
 // Set displays to idle
 void setDisplaysToIdle() {
-  isDisplaysIdle = true;
-  tft.sendCommand(GC9A01A_DISPOFF);
-
   digitalWrite(LCD_BL, LOW);
+  tft.sendCommand(GC9A01A_DISPOFF);
+  isDisplaysIdle = true;
 }
