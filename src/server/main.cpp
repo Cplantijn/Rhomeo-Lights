@@ -154,7 +154,6 @@ void setup() {
   FastLED.addLeds<WS2812B, AWNING_DATA_PIN, RGB>(awningLedsRGB, getRGBWsize(AWNING_NUM_LEDS));
   FastLED.clear();
 
-  int numLeds = FastLED.size();
   FastLED.setBrightness(255);
   FastLED.show();
 }
@@ -241,9 +240,7 @@ void loop() {
     } else {
       currentColor = SPECTRUM_COLORS[currentSelectorState.spectrum];
     }
-    // Send Message to Client
-    String colorMessage = "0," + String(currentSelector) + "," + String(currentColor.r) + "," + String(currentColor.g) + "," + String(currentColor.b) + "," + String(currentSelectorState.brightness);
-    Serial.println(colorMessage);
+
     int tftColor = colorTo565(currentColor);
     // Draw the arc
     int arcSegments = normalizeRangeInt(currentSelectorState.brightness, 0, 100, 0, 91);
@@ -289,6 +286,22 @@ void loop() {
     }
   }
   
+  if (hasInputsChanged) {
+    bool isWhite = currentSelectorState.isWhite;
+    Color currentColor;
+
+    if (isWhite) {
+      currentColor.r = 255;
+      currentColor.g = 255;
+      currentColor.b = 255;
+    } else {
+      currentColor = SPECTRUM_COLORS[currentSelectorState.spectrum];
+    }
+
+    String colorMessage = "0," + String(currentSelector) + "," + String(currentColor.r) + "," + String(currentColor.g) + "," + String(currentColor.b) + "," + String(currentSelectorState.brightness);
+    Serial.println(colorMessage);
+  }
+
   if (!isIdleTimeoutActive) {
     idleTimeoutStartTime = millis();
     isIdleTimeoutActive = true;

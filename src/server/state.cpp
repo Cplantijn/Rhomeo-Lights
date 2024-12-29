@@ -11,7 +11,7 @@ void initializeStates() {
   for (size_t i = 0; i < NUM_SELECTORS; ++i) { // Use NUM_SELECTORS for consistency
     strncpy(currentState[i].selectorName, SELECTORS[i], 8); 
     currentState[i].selectorName[8] = '\0'; // Ensure null termination
-    currentState[i].brightness = 0; 
+    currentState[i].brightness = 5; 
     currentState[i].spectrum = 0;
     currentState[i].isWhite = true;
   }
